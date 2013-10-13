@@ -1,0 +1,270 @@
+void Widget::desassemble(unsigned short int instruction) {
+    QString code;
+	// MOV
+	if ((instruction & 0xC0) == 0) {
+		code = "MOV ";
+		unsigned short int source(0), destination(0);
+		destination = (instruction & 0x38)>>3;
+		switch (destination) {
+			case 0:
+				code +="A";
+				break;
+			case 1:
+				code += "B";
+				break;
+			case 2:
+				scode += "C";
+				break;
+			case 3:
+				code += "D";
+				break;
+			case 4:
+				code += "M1";
+				break;
+			case 5:
+				code += "M2";
+				break;
+			case 6:
+				code += "X";
+				break;
+			case 7:
+				code += "Y";
+				break;
+			default:
+				break;
+		}
+		code += ", ";
+		source = instruction & 0x07;
+		switch (source) {
+			case 0:
+				code += "A";
+				break;
+			case 1:
+				code += "B";
+				break;
+			case 2:
+				code += "C";
+				break;
+			case 3:
+				code += "D";
+				break;
+			case 4:
+				code += "M1";
+				break;
+			case 5:
+				code += "M2";
+				break;
+			case 6:
+				code += "X";
+				break;
+			case 7:
+				code += "Y";
+				break;
+			default:
+				break;
+		}
+	}
+	// ALU
+	else if ((instruction & 0xF0) == 0x80) {
+		unsigned short int fonction(0);
+		fonction = instruction & 0x07;
+		switch (fonction) {
+			case 0:
+				code = "ADD";
+				break;
+			case 1:
+				code = "INC";
+				break;
+			case 2:
+				code = "AND";
+				break;
+			case 3:
+				code = "OR";
+				break;
+			case 4:
+				code = "XOR";
+				break;
+			case 5:
+				code = "NOT";
+				break;
+			case 6:
+				code = "SHL";
+				break;
+			case 7:
+				code = "ALU <not used>";
+				break;
+			default:
+				break;
+		}
+		code += " ";
+		if (instruction & 0x08) code += "D";
+		else code += "A";
+
+	}
+	//SETAB
+	else if ((instruction & 0xC0) == 0x40) {
+		code = "MOV ";
+		if (instruction & 0x20) code += "B";
+		else code += "A";
+		code += ", ";
+		short int valeur;
+		valeur = Inst.getWord() & 0x1F;
+		if (valeur & 0x10) valeur |= 0xFFF0;
+		code += QString::number(valeur);
+	}
+	// INCXY
+	else if (instruction == 0xB0) code = "INC XY";
+	// LOAD
+	else if ((instruction & 0xFC) == 0x90) {
+		unsigned short int destination(instruction & 0x03);
+		code = "MOV ";
+		switch (destination) {
+			case 0:
+				code += "A";
+				break;
+			case 1:
+				code += "B";
+				break;
+			case 2:
+				code += "C";
+				break;
+			case 3:
+				code += "D";
+				break;
+			default:
+				break;
+		}
+		code += ", [M]";
+	}
+	// STORE
+	else if ((instruction & 0xFC) == 0x98) {
+		unsigned short int destination(instruction & 0x03);
+		code = "MOV [M], ";
+		switch (destination) {
+			case 0:
+				code += "A";
+				break;
+			case 1:
+				code += "B";
+				break;
+			case 2:
+				code += "C";
+				break;
+			case 3:
+				code += "D";
+				break;
+			default:
+				break;
+		}
+	}
+	// MOV16
+	// - HALT
+	else if (instruction == 0xAE) code = "HALT";
+	// - RET / BRANCH INDIRECT
+	else if (instruction == 0xAA) code = "RET";
+	// - MOV
+	else if ((instruction & 0xF1) == 0xA0) {
+		unsigned short int destination;
+		destination = (instruction & 0x08)>>2;
+		code = "MOV ";
+		switch (destination) {
+			case 0:
+				code += "XY";
+				break;
+			case 1:
+				code += "PC";
+				break;
+			default:
+				break;
+		}
+		code += ", ";
+		unsigned short int source;
+		source = (instruction & 0x06)>>1;
+		switch (source) {
+			case 0:
+				code += "M";
+				break;
+			case 1:
+				code += "XY";
+				break;
+			case 2:
+				code += "J";
+				break;
+			case 3:
+				code += "break";
+				break;
+
+			default:
+				break;
+		}
+	}
+	// GOTO
+	// - MOV
+	else if (instruction == 0xC0) {
+		code = "MOV M, ";
+		unsigned short int valeur;
+		valeur = memory.getWord(PC.getWord()+1);
+		valeur <<=8;
+		valeur += memory.getWord(PC.getWord()+2);
+		std::cout << valeur << std::endl;
+	}
+	// - GOTO/JUMP
+	else if (instruction == 0xE6) {
+		code = "JUMP ";
+		unsigned short int valeur;
+		valeur = memory.getWord(PC.getWord()+1);
+		valeur <<=8;
+		valeur += memory.getWord(PC.getWord()+2);
+		std::cout << valeur << std::endl;
+	}
+	// - CALL
+	else if (instruction == 0xE7) {
+		code = "CALL ";
+		unsigned short int valeur;
+		valeur = memory.getWord(PC.getWord()+1);
+		valeur <<=8;
+		valeur += memory.getWord(PC.getWord()+2);
+		std::cout << valeur << std::endl;
+	}
+	// - BNEG
+	else if (instruction == 0xF0) {
+		code = "BNEG ";
+		unsigned short int valeur;
+		valeur = memory.getWord(PC.getWord()+1);
+		valeur <<=8;
+		valeur += memory.getWord(PC.getWord()+2);
+		std::cout << valeur << std::endl;
+	}
+	// - BNC
+	else if (instruction == 0xE8) {
+		code = "BNC ";
+		unsigned short int valeur;
+		valeur = memory.getWord(PC.getWord()+1);
+		valeur <<=8;
+		valeur += memory.getWord(PC.getWord()+2);
+		std::cout << valeur << std::endl;
+	}
+	// - BZ/BE
+	else if (instruction == 0xE4) {
+		code = "BZ ";
+		unsigned short int valeur;
+		valeur = memory.getWord(PC.getWord()+1);
+		valeur <<=8;
+		valeur += memory.getWord(PC.getWord()+2);
+		std::cout << valeur << std::endl;
+	}
+	// - BNZ/BZE
+	else if (instruction == 0xE2) {
+		code = "BNZ ";
+		unsigned short int valeur;
+		valeur = memory.getWord(PC.getWord()+1);
+		valeur <<=8;
+		valeur += memory.getWord(PC.getWord()+2);
+		code += QString::number(valeur);
+	}
+	// Instruction inconnue
+	else {
+		code = "Instruction inconnue.";
+	}
+	lineEdit_ASM->setText(code);
+}
